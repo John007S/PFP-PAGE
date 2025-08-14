@@ -1,2 +1,859 @@
-# PFP-PAGE
-Nothing Much
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="description" content="IRYS PFP Editor - Create custom profile pictures with stickers">
+    <meta name="author" content="IRYS">
+    <title>IRYS PFP Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-image: url('https://i.postimg.cc/nr6cn0ny/IMG-1008.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 0 0 15px 0;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+            border: 2px solid #fff;
+        }
+
+        .title {
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Main container */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 100px 20px 120px;
+            min-height: 100vh;
+        }
+
+        /* Upload area */
+        .upload-area {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 3px dashed #4CAF50;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .upload-area:hover {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .upload-subtext {
+            color: #666;
+            font-size: 14px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Canvas container */
+        .canvas-container {
+            position: relative;
+            display: none;
+            margin: 20px 0;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            background: #fff;
+            max-width: 80vw;
+            max-height: 80vh;
+        }
+
+        #imageCanvas {
+            display: block;
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+
+        /* Image controls */
+        .image-controls {
+            display: none;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+            background: linear-gradient(135deg, #ff5252, #ff6b6b);
+        }
+
+        .control-btn.replace-btn {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
+        .control-btn.replace-btn:hover {
+            background: linear-gradient(135deg, #1976D2, #2196F3);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Sticker overlay */
+        .sticker {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            z-index: 10;
+            opacity: 0.95;
+            transition: opacity 0.2s ease;
+        }
+
+        .sticker:hover {
+            opacity: 1;
+        }
+
+        .sticker img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .sticker .resize-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #4CAF50;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            bottom: -10px;
+            right: -10px;
+            cursor: nw-resize;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .sticker .delete-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ff4444;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            top: -10px;
+            right: -10px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Bottom sticker bar */
+        .sticker-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            z-index: 900;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sticker-option {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sticker-option:hover {
+            transform: translateY(-5px);
+            border-color: #4CAF50;
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .sticker-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Download button */
+        .download-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+            margin: 20px;
+            display: none;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .header {
+                padding: 10px 15px;
+            }
+
+            .logo {
+                width: 40px;
+                height: 40px;
+            }
+
+            .title {
+                font-size: 20px;
+            }
+
+            .upload-area {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+
+            .sticker-bar {
+                padding: 15px;
+                gap: 15px;
+            }
+
+            .sticker-option {
+                width: 50px;
+                height: 50px;
+            }
+
+            .container {
+                padding: 80px 10px 100px;
+            }
+
+            .control-btn {
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+
+            .image-controls {
+                gap: 10px;
+            }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #4CAF50;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <img src="https://i.postimg.cc/vB3nhFGG/IMG-0909.jpg" alt="IRYS Logo" class="logo">
+        <div class="title">IRYS PFP</div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Upload Area -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-text">📸 Upload Your Image</div>
+            <div class="upload-subtext">Click here or drag & drop your image</div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="canvas-container" id="canvasContainer">
+            <canvas id="imageCanvas"></canvas>
+        </div>
+
+        <!-- Image Controls -->
+        <div class="image-controls" id="imageControls">
+            <button class="control-btn replace-btn" id="replaceBtn">
+                🔄 Replace Image
+            </button>
+            <button class="control-btn" id="removeBtn">
+                🗑️ Remove Image
+            </button>
+        </div>
+
+        <!-- Download Button -->
+        <button class="download-btn" id="downloadBtn">💾 Download Final Image</button>
+    </div>
+
+    <!-- Bottom Sticker Bar -->
+    <div class="sticker-bar" id="stickerBar">
+        <div class="sticker-option" data-sticker="https://i.postimg.cc/jSmJ34VJ/32691dde2c7c3acc6b35140dce5d2d62.webp">
+            <img src="https://i.postimg.cc/jSmJ34VJ/32691dde2c7c3acc6b35140dce5d2d62.webp" alt="Sticker 1">
+        </div>
+        <div class="sticker-option" data-sticker="https://i.postimg.cc/NFdK617F/90480b271880d3c7d94a50b7e40ff172.webp">
+            <img src="https://i.postimg.cc/NFdK617F/90480b271880d3c7d94a50b7e40ff172.webp" alt="Sticker 2">
+        </div>
+        <div class="sticker-option" data-sticker="https://i.postimg.cc/90QMQD5h/5af13d1ea9d761651ea5ce34ab754d0e-1.webp">
+            <img src="https://i.postimg.cc/90QMQD5h/5af13d1ea9d761651ea5ce34ab754d0e-1.webp" alt="Sticker 3">
+        </div>
+        <div class="sticker-option" data-sticker="https://i.postimg.cc/HsKxTW6q/42da162b44f96cc73f8a05785df11c78.webp">
+            <img src="https://i.postimg.cc/HsKxTW6q/42da162b44f96cc73f8a05785df11c78.webp" alt="Sticker 4">
+        </div>
+    </div>
+
+    <script>
+        let uploadedImage = null;
+        let stickers = [];
+        let draggedSticker = null;
+        let resizingSticker = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const canvasContainer = document.getElementById('canvasContainer');
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const imageControls = document.getElementById('imageControls');
+        const replaceBtn = document.getElementById('replaceBtn');
+        const removeBtn = document.getElementById('removeBtn');
+        const stickerOptions = document.querySelectorAll('.sticker-option');
+
+        // Upload functionality
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('drop', handleDrop);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Image control functionality
+        replaceBtn.addEventListener('click', () => fileInput.click());
+        removeBtn.addEventListener('click', removeCurrentImage);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect({ target: { files: files } });
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    loadImage(event.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function loadImage(src) {
+            uploadedImage = new Image();
+            uploadedImage.onload = function() {
+                // Calculate canvas size maintaining aspect ratio
+                const maxWidth = Math.min(window.innerWidth * 0.8, 800);
+                const maxHeight = Math.min(window.innerHeight * 0.8, 600);
+                
+                let canvasWidth = uploadedImage.width;
+                let canvasHeight = uploadedImage.height;
+                
+                if (canvasWidth > maxWidth) {
+                    canvasHeight = (canvasHeight * maxWidth) / canvasWidth;
+                    canvasWidth = maxWidth;
+                }
+                
+                if (canvasHeight > maxHeight) {
+                    canvasWidth = (canvasWidth * maxHeight) / canvasHeight;
+                    canvasHeight = maxHeight;
+                }
+                
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                canvas.style.width = canvasWidth + 'px';
+                canvas.style.height = canvasHeight + 'px';
+                
+                // Show canvas, controls and hide upload area
+                uploadArea.style.display = 'none';
+                canvasContainer.style.display = 'block';
+                imageControls.style.display = 'flex';
+                downloadBtn.style.display = 'inline-block';
+                
+                redrawCanvas();
+            };
+            uploadedImage.src = src;
+        }
+
+        function removeCurrentImage() {
+            // Clear the uploaded image
+            uploadedImage = null;
+            
+            // Remove all stickers
+            stickers.forEach(sticker => {
+                if (sticker.element && sticker.element.parentNode) {
+                    sticker.element.remove();
+                }
+            });
+            stickers = [];
+            
+            // Hide canvas and controls, show upload area
+            canvasContainer.style.display = 'none';
+            imageControls.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            uploadArea.style.display = 'block';
+            
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset file input
+            fileInput.value = '';
+        }
+
+        function redrawCanvas() {
+            if (!canvas || !ctx) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw the main image
+            if (uploadedImage) {
+                ctx.drawImage(uploadedImage, 0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // Sticker functionality
+        stickerOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const stickerSrc = this.dataset.sticker;
+                if (stickerSrc && uploadedImage) {
+                    addSticker(stickerSrc);
+                }
+            });
+        });
+
+        function addSticker(src) {
+            // Check if we have a valid canvas and uploaded image
+            if (!canvas || !uploadedImage) {
+                console.warn('Cannot add sticker: No image uploaded');
+                return;
+            }
+
+            const stickerImg = new Image();
+            // Remove crossOrigin to avoid CORS issues with external images
+            stickerImg.onload = function() {
+                const sticker = {
+                    id: Date.now(),
+                    image: stickerImg,
+                    x: Math.max(0, (canvas.width / 2) - 50),
+                    y: Math.max(0, (canvas.height / 2) - 50),
+                    width: 100,
+                    height: 100,
+                    element: createStickerElement(stickerImg, src)
+                };
+                
+                stickers.push(sticker);
+                canvasContainer.appendChild(sticker.element);
+                updateStickerPosition(sticker);
+            };
+            stickerImg.onerror = function() {
+                console.warn('Failed to load sticker image:', src);
+                // Try loading without crossOrigin
+                const fallbackImg = new Image();
+                fallbackImg.onload = function() {
+                    const sticker = {
+                        id: Date.now(),
+                        image: fallbackImg,
+                        x: Math.max(0, (canvas.width / 2) - 50),
+                        y: Math.max(0, (canvas.height / 2) - 50),
+                        width: 100,
+                        height: 100,
+                        element: createStickerElement(fallbackImg, src)
+                    };
+                    
+                    stickers.push(sticker);
+                    canvasContainer.appendChild(sticker.element);
+                    updateStickerPosition(sticker);
+                };
+                fallbackImg.src = src;
+            };
+            stickerImg.src = src;
+        }
+
+        function createStickerElement(img, src) {
+            const stickerDiv = document.createElement('div');
+            stickerDiv.className = 'sticker';
+            stickerDiv.style.width = '100px';
+            stickerDiv.style.height = '100px';
+            
+            const stickerImg = document.createElement('img');
+            stickerImg.src = src;
+            stickerImg.draggable = false;
+            
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle';
+            
+            const deleteHandle = document.createElement('div');
+            deleteHandle.className = 'delete-handle';
+            deleteHandle.innerHTML = '×';
+            
+            stickerDiv.appendChild(stickerImg);
+            stickerDiv.appendChild(resizeHandle);
+            stickerDiv.appendChild(deleteHandle);
+            
+            // Add event listeners
+            stickerDiv.addEventListener('mousedown', startDrag);
+            stickerDiv.addEventListener('touchstart', startDrag, { passive: false });
+            resizeHandle.addEventListener('mousedown', startResize);
+            resizeHandle.addEventListener('touchstart', startResize, { passive: false });
+            deleteHandle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteSticker(stickerDiv);
+            });
+            
+            return stickerDiv;
+        }
+
+        function updateStickerPosition(sticker) {
+            if (!sticker.element) return;
+            
+            sticker.element.style.left = sticker.x + 'px';
+            sticker.element.style.top = sticker.y + 'px';
+            sticker.element.style.width = sticker.width + 'px';
+            sticker.element.style.height = sticker.height + 'px';
+        }
+
+        // Touch and drag variables
+        let touchStartDistance = 0;
+        let initialStickerSize = { width: 0, height: 0 };
+        let isPinching = false;
+
+        function startDrag(e) {
+            if (e.target.classList.contains('resize-handle') || e.target.classList.contains('delete-handle')) return;
+            
+            e.preventDefault();
+            draggedSticker = e.currentTarget;
+            
+            const rect = canvasContainer.getBoundingClientRect();
+            
+            // Handle multi-touch for pinch-to-resize
+            if (e.touches && e.touches.length === 2) {
+                isPinching = true;
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                touchStartDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+                
+                const sticker = stickers.find(s => s.element === draggedSticker);
+                if (sticker) {
+                    initialStickerSize.width = sticker.width;
+                    initialStickerSize.height = sticker.height;
+                }
+                return;
+            }
+            
+            // Single touch or mouse
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            const currentLeft = parseInt(draggedSticker.style.left) || 0;
+            const currentTop = parseInt(draggedSticker.style.top) || 0;
+            
+            dragOffset.x = clientX - rect.left - currentLeft;
+            dragOffset.y = clientY - rect.top - currentTop;
+            
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('touchend', stopDrag);
+        }
+
+        function drag(e) {
+            if (!draggedSticker) return;
+            
+            e.preventDefault();
+            const rect = canvasContainer.getBoundingClientRect();
+            
+            // Handle pinch-to-resize for touch
+            if (e.touches && e.touches.length === 2 && isPinching) {
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+                
+                const scale = currentDistance / touchStartDistance;
+                const newWidth = Math.max(30, Math.min(300, initialStickerSize.width * scale));
+                const newHeight = Math.max(30, Math.min(300, initialStickerSize.height * scale));
+                
+                draggedSticker.style.width = newWidth + 'px';
+                draggedSticker.style.height = newHeight + 'px';
+                
+                // Update sticker data
+                const sticker = stickers.find(s => s.element === draggedSticker);
+                if (sticker) {
+                    sticker.width = newWidth;
+                    sticker.height = newHeight;
+                }
+                return;
+            }
+            
+            // Regular drag functionality
+            if (isPinching) return;
+            
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            const stickerWidth = parseInt(draggedSticker.style.width) || 100;
+            const stickerHeight = parseInt(draggedSticker.style.height) || 100;
+            
+            const newX = Math.max(0, Math.min(canvas.width - stickerWidth, clientX - rect.left - dragOffset.x));
+            const newY = Math.max(0, Math.min(canvas.height - stickerHeight, clientY - rect.top - dragOffset.y));
+            
+            draggedSticker.style.left = newX + 'px';
+            draggedSticker.style.top = newY + 'px';
+            
+            // Update sticker data
+            const sticker = stickers.find(s => s.element === draggedSticker);
+            if (sticker) {
+                sticker.x = newX;
+                sticker.y = newY;
+            }
+        }
+
+        function stopDrag(e) {
+            // Reset pinch variables
+            if (e.touches && e.touches.length === 0) {
+                isPinching = false;
+                touchStartDistance = 0;
+            }
+            
+            draggedSticker = null;
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchmove', drag);
+            document.removeEventListener('touchend', stopDrag);
+        }
+
+        function startResize(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            resizingSticker = e.currentTarget.parentElement;
+            
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+            document.addEventListener('touchmove', resize, { passive: false });
+            document.addEventListener('touchend', stopResize);
+        }
+
+        function resize(e) {
+            if (!resizingSticker) return;
+            
+            e.preventDefault();
+            const rect = canvasContainer.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            const stickerRect = resizingSticker.getBoundingClientRect();
+            const newWidth = Math.max(30, Math.min(300, clientX - stickerRect.left));
+            const newHeight = Math.max(30, Math.min(300, clientY - stickerRect.top));
+            
+            resizingSticker.style.width = newWidth + 'px';
+            resizingSticker.style.height = newHeight + 'px';
+            
+            // Update sticker data
+            const sticker = stickers.find(s => s.element === resizingSticker);
+            if (sticker) {
+                sticker.width = newWidth;
+                sticker.height = newHeight;
+            }
+        }
+
+        function stopResize() {
+            resizingSticker = null;
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+            document.removeEventListener('touchmove', resize);
+            document.removeEventListener('touchend', stopResize);
+        }
+
+        function deleteSticker(stickerElement) {
+            const index = stickers.findIndex(s => s.element === stickerElement);
+            if (index !== -1) {
+                stickers.splice(index, 1);
+                stickerElement.remove();
+            }
+        }
+
+        // Download functionality
+        downloadBtn.addEventListener('click', downloadImage);
+
+        function downloadImage() {
+            if (!uploadedImage) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            const downloadCanvas = document.createElement('canvas');
+            const downloadCtx = downloadCanvas.getContext('2d');
+            
+            downloadCanvas.width = canvas.width;
+            downloadCanvas.height = canvas.height;
+            
+            // Draw the main image
+            downloadCtx.drawImage(uploadedImage, 0, 0, canvas.width, canvas.height);
+            
+            // Draw all stickers
+            stickers.forEach(sticker => {
+                if (sticker.image && sticker.image.complete) {
+                    try {
+                        downloadCtx.drawImage(
+                            sticker.image,
+                            sticker.x,
+                            sticker.y,
+                            sticker.width,
+                            sticker.height
+                        );
+                    } catch (error) {
+                        console.warn('Failed to draw sticker on canvas:', error);
+                    }
+                }
+            });
+            
+            // Download the image
+            try {
+                downloadCanvas.toBlob(function(blob) {
+                    if (blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'irys-pfp-' + Date.now() + '.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    } else {
+                        alert('Failed to generate image. Please try again.');
+                    }
+                }, 'image/png');
+            } catch (error) {
+                console.error('Download failed:', error);
+                alert('Download failed. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
